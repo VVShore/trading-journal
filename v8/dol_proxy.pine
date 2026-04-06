@@ -1,0 +1,104 @@
+//@version=6
+// DOL Level Proxy — makes your key levels readable by the journal bridge
+// 
+// HOW TO USE:
+//   1. Add this indicator to your TradingView chart
+//   2. Before each session, open its settings and type in your current DOL levels
+//      (the levels you would normally draw manually as trend lines)
+//   3. The journal's "Read Chart" will pick these up under "custom_levels"
+//
+// WHY THIS EXISTS:
+//   TradingView manually drawn lines cannot be read by any external tool.
+//   This indicator creates Pine Script line.new() objects at your specified prices,
+//   which the MCP bridge CAN read via data labels.
+//
+// NOTE: Standard deviation drawings still cannot be read. This only covers
+//       flat price levels (your DOL, HTF gaps, etc.)
+
+indicator("DOL Levels", overlay=true, max_lines_count=20, max_labels_count=20)
+
+var g = "Key Levels"
+var tip = "Enter the price of your level, leave 0 to disable. Label is the name shown on chart."
+
+// Level 1 (primary DOL)
+use_1   = input.bool(false, "",      inline="L1", group=g)
+lbl_1   = input.string("DOL",        "",          inline="L1", group=g)
+price_1 = input.float(0, "",         inline="L1", group=g, step=0.25)
+col_1   = input.color(color.white,   "",          inline="L1", group=g)
+
+// Level 2
+use_2   = input.bool(false, "",      inline="L2", group=g)
+lbl_2   = input.string("HTF H",      "",          inline="L2", group=g)
+price_2 = input.float(0, "",         inline="L2", group=g, step=0.25)
+col_2   = input.color(color.yellow,  "",          inline="L2", group=g)
+
+// Level 3
+use_3   = input.bool(false, "",      inline="L3", group=g)
+lbl_3   = input.string("HTF L",      "",          inline="L3", group=g)
+price_3 = input.float(0, "",         inline="L3", group=g, step=0.25)
+col_3   = input.color(color.yellow,  "",          inline="L3", group=g)
+
+// Level 4
+use_4   = input.bool(false, "",      inline="L4", group=g)
+lbl_4   = input.string("4H Gap H",   "",          inline="L4", group=g)
+price_4 = input.float(0, "",         inline="L4", group=g, step=0.25)
+col_4   = input.color(#818cf8,       "",          inline="L4", group=g)
+
+// Level 5
+use_5   = input.bool(false, "",      inline="L5", group=g)
+lbl_5   = input.string("4H Gap L",   "",          inline="L5", group=g)
+price_5 = input.float(0, "",         inline="L5", group=g, step=0.25)
+col_5   = input.color(#818cf8,       "",          inline="L5", group=g)
+
+// Level 6
+use_6   = input.bool(false, "",      inline="L6", group=g)
+lbl_6   = input.string("1H Gap H",   "",          inline="L6", group=g)
+price_6 = input.float(0, "",         inline="L6", group=g, step=0.25)
+col_6   = input.color(color.lime,    "",          inline="L6", group=g)
+
+// Level 7
+use_7   = input.bool(false, "",      inline="L7", group=g)
+lbl_7   = input.string("1H Gap L",   "",          inline="L7", group=g)
+price_7 = input.float(0, "",         inline="L7", group=g, step=0.25)
+col_7   = input.color(color.lime,    "",          inline="L7", group=g)
+
+// Level 8 — free label
+use_8   = input.bool(false, "",      inline="L8", group=g)
+lbl_8   = input.string("Custom",     "",          inline="L8", group=g)
+price_8 = input.float(0, "",         inline="L8", group=g, step=0.25)
+col_8   = input.color(color.orange,  "",          inline="L8", group=g)
+
+// ── Draw lines and labels at last bar only ────────────
+var transparent = color.new(color.white, 100)
+
+type lvl
+    bool   use
+    string lbl
+    float  price
+    color  col
+
+draw_level(lvl L) =>
+    if L.use and L.price != 0 and barstate.islast
+        line.new(bar_index - 10, L.price, bar_index + 50, L.price,
+                 color=L.col, width=1, style=line.style_dashed,
+                 extend=extend.none)
+        // Label carries the text the bridge will read
+        label.new(bar_index + 50, L.price, L.lbl,
+                  color=transparent, textcolor=L.col,
+                  style=label.style_label_left, size=size.small)
+
+// Draw all enabled levels
+levels = array.from(
+    lvl.new(use_1, lbl_1, price_1, col_1),
+    lvl.new(use_2, lbl_2, price_2, col_2),
+    lvl.new(use_3, lbl_3, price_3, col_3),
+    lvl.new(use_4, lbl_4, price_4, col_4),
+    lvl.new(use_5, lbl_5, price_5, col_5),
+    lvl.new(use_6, lbl_6, price_6, col_6),
+    lvl.new(use_7, lbl_7, price_7, col_7),
+    lvl.new(use_8, lbl_8, price_8, col_8)
+)
+
+if barstate.islast
+    for L in levels
+        draw_level(L)

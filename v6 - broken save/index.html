@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>The Craftsman's Mirror</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  /* Palette — intentionally premium */
+  --bg:#060608;--s1:#0c0c0f;--s2:#111114;--s3:#16161a;
+  --b1:#1e1e24;--b2:#26262e;--b3:#32323c;
+  --t1:#f0f0f2;--t2:#9090a0;--t3:#464658;
+  --g:#4ade80;--r:#f87171;--y:#facc15;--b:#818cf8;--p:#c084fc;--o:#fb923c;
+  --gd:#081c10;--rd:#1c0808;--yd:#1c1800;--bd:#0c0c1c;
+  --gs:#0f2a18;--rs:#2a0f0f;--ys:#2a2200;--bs:#0f0f2a;
+  --accent:#818cf8;
+  --radius:10px;
+  --font:'SF Pro Display',-apple-system,'Segoe UI',system-ui,sans-serif;
+}
+html{font-size:14px}
+body{background:var(--bg);color:var(--t1);font-family:var(--font);min-height:100vh;line-height:1.5}
+
+/* ── TOP BAR ── */
+.topbar{
+  display:flex;align-items:center;background:rgba(6,6,8,.9);
+  border-bottom:1px solid var(--b1);padding:0 16px;height:46px;
+  position:sticky;top:0;z-index:200;gap:8px;
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+}
+.app-name{font-size:13px;font-weight:700;letter-spacing:.5px;color:var(--t2);white-space:nowrap}
+.app-name span{color:var(--accent)}
+nav{display:flex;flex:1;overflow-x:auto;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+nav button{
+  background:none;border:none;color:var(--t3);padding:10px 14px;font-size:11px;
+  cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;
+  transition:all .15s;text-transform:uppercase;letter-spacing:.8px;font-weight:700;height:46px
+}
+nav button.active{color:var(--t1);border-bottom-color:var(--accent)}
+nav button:hover{color:var(--t2)}
+.acc-chip{
+  display:flex;align-items:center;gap:5px;background:var(--s2);
+  border:1px solid var(--b2);border-radius:6px;padding:4px 9px;
+  cursor:pointer;flex-shrink:0;font-size:11px;color:var(--t3);transition:all .15s
+}
+.acc-chip:hover{border-color:var(--b3);color:var(--t2)}
+.acc-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+
+/* ── PAGES ── */
+.page{display:none;padding:14px;max-width:680px;margin:0 auto;padding-bottom:40px}
+.page.active{display:block}
+
+/* ── SYSTEM STATUS ── */
+.sys-bar{display:flex;gap:5px;margin-bottom:12px;flex-wrap:wrap}
+.pill{
+  padding:3px 9px;border-radius:999px;font-size:10px;font-weight:600;letter-spacing:.3px;
+  border:1px solid transparent
+}
+.pill.ok{background:var(--gd);color:var(--g);border-color:#1a3d24}
+.pill.warn{background:var(--yd);color:var(--y);border-color:#3a3200}
+.pill.off{background:var(--s2);color:var(--t3);border-color:var(--b1)}
+
+/* ── LOG HEADER ── */
+.log-header{
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--s1);border:1px solid var(--b1);border-radius:var(--radius);
+  padding:12px 16px;margin-bottom:10px
+}
+.session-info{display:flex;align-items:baseline;gap:8px}
+.session-num{font-size:28px;font-weight:800;line-height:1}
+.session-label{font-size:11px;color:var(--t3)}
+.session-r{font-size:14px;font-weight:700}
+.streak-chips{display:flex;gap:5px}
+.streak-chip{
+  display:flex;align-items:center;gap:4px;padding:4px 9px;
+  border-radius:5px;font-size:10px;font-weight:700;
+  background:var(--s2);border:1px solid var(--b2);color:var(--t3)
+}
+.streak-chip.active{background:var(--bd);border-color:var(--b);color:var(--b)}
+
+/* ── BANNERS ── */
+.banner{
+  border-radius:8px;padding:9px 13px;margin-bottom:8px;
+  font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px;
+  border:1px solid transparent
+}
+.banner.stop{background:var(--rd);border-color:var(--r);color:var(--r)}
+.banner.caution{background:var(--yd);border-color:var(--y);color:var(--y)}
+.banner.signal{background:var(--gd);border-color:var(--g);color:var(--g)}
+.banner.tilt{background:var(--rs);border-color:#5a2020;color:#f09090}
+
+/* ── STATE BUTTONS (top-level, always visible) ── */
+.state-row{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px
+}
+.state-btn{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;padding:12px 4px;border-radius:9px;border:1.5px solid var(--b2);
+  background:var(--s2);cursor:pointer;transition:all .15s;min-height:60px;
+  font-size:11px;font-weight:600;color:var(--t3);text-align:center
+}
+.state-btn .icon{font-size:20px;line-height:1;margin-bottom:2px}
+.state-btn:hover{border-color:var(--b3);color:var(--t2)}
+.state-btn.locked_in.sel{background:var(--gd);border-color:var(--g);color:var(--g)}
+.state-btn.neutral.sel{background:var(--bd);border-color:var(--b);color:var(--b)}
+.state-btn.off.sel{background:var(--yd);border-color:var(--y);color:var(--y)}
+.state-btn.tilt.sel{background:var(--rd);border-color:var(--r);color:var(--r)}
+
+/* ── SCREENSHOT ── */
+.shot-zone{
+  border:1.5px dashed var(--b2);border-radius:var(--radius);
+  min-height:110px;display:flex;align-items:center;justify-content:center;
+  flex-direction:column;gap:4px;cursor:pointer;transition:all .2s;
+  background:var(--s1);overflow:hidden;margin-bottom:8px;position:relative
+}
+.shot-zone:hover,.shot-zone.drag{border-color:var(--accent);background:var(--bs)}
+.shot-zone img{max-height:160px;max-width:100%;object-fit:contain;border-radius:7px}
+.shot-hint{color:var(--t3);font-size:12px;text-align:center;pointer-events:none}
+.shot-hint span{color:var(--accent)}
+.clear-shot{
+  position:absolute;top:6px;right:6px;background:rgba(0,0,0,.75);
+  border:none;color:var(--t3);border-radius:4px;padding:3px 8px;
+  font-size:11px;cursor:pointer;transition:color .15s
+}
+.clear-shot:hover{color:var(--r)}
+.ai-row{display:flex;align-items:center;gap:7px;margin-bottom:10px}
+.toggle{position:relative;display:inline-block;width:30px;height:16px}
+.toggle input{opacity:0;width:0;height:0}
+.slider{position:absolute;cursor:pointer;inset:0;background:var(--b2);border-radius:16px;transition:.2s}
+.slider:before{position:absolute;content:"";height:10px;width:10px;left:3px;bottom:3px;background:var(--t3);border-radius:50%;transition:.2s}
+input:checked+.slider{background:var(--gd)}
+input:checked+.slider:before{transform:translateX(14px);background:var(--g)}
+.ai-lbl{font-size:11px;color:var(--t3)}
+
+/* ── CORE FLOW CARD ── */
+.flow-card{
+  background:var(--s1);border:1px solid var(--b1);border-radius:var(--radius);
+  margin-bottom:8px;overflow:hidden
+}
+.flow-section{padding:12px 14px;border-bottom:1px solid var(--b1)}
+.flow-section:last-child{border-bottom:none}
+.flow-label{
+  font-size:10px;text-transform:uppercase;letter-spacing:1.2px;
+  color:var(--t3);font-weight:700;margin-bottom:8px;
+  display:flex;align-items:center;justify-content:space-between
+}
+.flow-label .chosen{font-size:11px;font-weight:700;letter-spacing:0;text-transform:none}
+
+/* Setup buttons */
+.setup-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+.setup-btn{
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding:9px 3px;border-radius:8px;border:1.5px solid var(--b2);
+  background:var(--s2);cursor:pointer;transition:all .15s;
+  font-size:10px;font-weight:600;color:var(--t3);text-align:center;min-height:52px
+}
+.setup-btn .icon{font-size:16px;line-height:1;margin-bottom:1px}
+.setup-btn:hover,.setup-btn.sel{border-color:var(--accent);background:var(--bs);color:var(--b)}
+
+/* Quality — big three */
+.quality-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.q-btn{
+  padding:13px 6px;border-radius:9px;border:1.5px solid var(--b2);
+  background:var(--s2);cursor:pointer;transition:all .15s;
+  font-size:13px;font-weight:800;color:var(--t3);text-align:center
+}
+.q-desc{font-size:10px;font-weight:500;color:var(--t3);margin-top:2px}
+.q-btn.qa:hover,.q-btn.qa.sel{background:var(--gd);border-color:var(--g);color:var(--g)}
+.q-btn.qb:hover,.q-btn.qb.sel{background:var(--yd);border-color:var(--y);color:var(--y)}
+.q-btn.qc:hover,.q-btn.qc.sel{background:var(--rd);border-color:var(--r);color:var(--r)}
+.q-btn.qc.sel .q-desc{color:var(--r)}
+
+/* R result */
+.r-grid{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
+.r-btn{
+  padding:9px 12px;border-radius:7px;border:1.5px solid var(--b2);
+  background:var(--s2);font-size:13px;font-weight:800;cursor:pointer;
+  transition:all .15s;color:var(--t3)
+}
+.r-btn.pos:hover,.r-btn.pos.sel{background:var(--gd);border-color:var(--g);color:var(--g)}
+.r-btn.neg:hover,.r-btn.neg.sel{background:var(--rd);border-color:var(--r);color:var(--r)}
+.r-btn.be-btn:hover,.r-btn.be-btn.sel{background:var(--yd);border-color:var(--y);color:var(--y)}
+.r-custom{
+  background:var(--s2);border:1.5px solid var(--b2);color:var(--t1);
+  padding:9px 12px;border-radius:7px;font-size:13px;font-weight:700;
+  width:90px;outline:none;text-align:center;transition:border .15s
+}
+.r-custom:focus{border-color:var(--accent)}
+
+/* ── BEHAVIORAL FLOW (secondary, still in main card) ── */
+.beh-grid{display:flex;flex-wrap:wrap;gap:5px}
+.beh-btn{
+  padding:7px 11px;border-radius:7px;border:1.5px solid var(--b2);
+  background:var(--s2);font-size:11px;font-weight:600;cursor:pointer;
+  transition:all .15s;color:var(--t3)
+}
+.beh-btn.good:hover,.beh-btn.good.sel{background:var(--gd);border-color:var(--g);color:var(--g)}
+.beh-btn.bad:hover,.beh-btn.bad.sel{background:var(--rd);border-color:var(--r);color:var(--r)}
+.beh-btn.warn:hover,.beh-btn.warn.sel{background:var(--yd);border-color:var(--y);color:var(--y)}
+
+/* ── OPTIONAL CONTEXT ── */
+.opt-coll{
+  background:var(--s1);border:1px solid var(--b1);
+  border-radius:var(--radius);margin-bottom:8px;overflow:hidden
+}
+.opt-coll-h{
+  padding:10px 14px;cursor:pointer;display:flex;justify-content:space-between;
+  align-items:center;font-size:11px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.8px;color:var(--t3);user-select:none
+}
+.opt-coll-h:hover{color:var(--t2)}
+.opt-coll-h .arr{font-size:9px;transition:transform .2s;color:var(--t3)}
+.opt-coll-h.open .arr{transform:rotate(180deg)}
+.opt-coll-b{display:none;padding:12px 14px;border-top:1px solid var(--b1)}
+.opt-coll-b.open{display:block}
+.opt-lbl{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--t3);font-weight:700;margin:10px 0 6px}
+.opt-lbl:first-child{margin-top:0}
+.small-grid{display:flex;flex-wrap:wrap;gap:5px}
+.s-btn{
+  padding:6px 10px;border-radius:6px;border:1.5px solid var(--b2);
+  background:var(--s2);font-size:11px;font-weight:600;cursor:pointer;
+  transition:all .15s;color:var(--t3)
+}
+.s-btn:hover,.s-btn.sel{background:var(--bd);border-color:var(--b);color:var(--b)}
+.s-input{
+  background:var(--s2);border:1.5px solid var(--b2);color:var(--t1);
+  padding:7px 10px;border-radius:6px;font-size:12px;width:100%;outline:none
+}
+.s-input:focus{border-color:var(--accent)}
+
+/* ── LOG BUTTON ── */
+.log-btn{
+  width:100%;padding:14px;margin-top:8px;border-radius:var(--radius);border:none;
+  background:var(--accent);color:#fff;font-size:13px;font-weight:800;
+  cursor:pointer;transition:all .15s;letter-spacing:.8px;text-transform:uppercase;
+  font-family:var(--font)
+}
+.log-btn:hover{filter:brightness(1.1)}
+.log-btn:disabled{background:var(--b1);color:var(--t3);cursor:not-allowed}
+.reset-btn{
+  width:100%;padding:9px;margin-top:5px;border-radius:8px;border:1px solid var(--b2);
+  background:none;color:var(--t3);font-size:12px;cursor:pointer;transition:all .15s;
+  font-family:var(--font)
+}
+.reset-btn:hover{color:var(--r);border-color:var(--r)}
+
+/* ── TODAY PAGE ── */
+.stat-grid{display:grid;gap:7px;margin-bottom:10px}
+.c4{grid-template-columns:repeat(4,1fr)}.c3{grid-template-columns:repeat(3,1fr)}
+.stat-card{
+  background:var(--s1);border:1px solid var(--b1);border-radius:var(--radius);
+  padding:11px;text-align:center
+}
+.stat-card .num{font-size:22px;font-weight:800;margin-bottom:2px}
+.stat-card .lbl{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px}
+.stat-card.g .num{color:var(--g)}.stat-card.r .num{color:var(--r)}
+.stat-card.y .num{color:var(--y)}.stat-card.b .num{color:var(--b)}
+
+/* Mirror card */
+.mirror-card{
+  background:var(--s1);border:1px solid var(--b1);border-radius:var(--radius);
+  padding:16px;margin-bottom:10px
+}
+.mirror-card h3{
+  font-size:10px;text-transform:uppercase;letter-spacing:1.2px;
+  color:var(--t3);font-weight:700;margin-bottom:14px
+}
+.session-grade{
+  font-size:64px;font-weight:900;line-height:1;
+  margin-bottom:4px;letter-spacing:-2px
+}
+.grade-a{color:var(--g)}.grade-b{color:var(--y)}.grade-c{color:var(--r)}
+.craftsman-score{font-size:12px;color:var(--t3);margin-bottom:12px}
+.mirror-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:10px}
+.mirror-item{background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:10px 12px}
+.mirror-item .m-lbl{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.mirror-item .m-val{font-size:12px;font-weight:700;color:var(--t1)}
+.ai-mirror{
+  background:var(--s2);border:1px solid var(--b2);border-radius:8px;
+  padding:12px 14px;font-size:13px;color:var(--t2);line-height:1.7;
+  font-style:italic;margin-bottom:8px
+}
+.signal-box{
+  background:var(--bs);border:1px solid var(--b);border-radius:8px;
+  padding:11px 14px;font-size:12px;color:var(--b);font-weight:600;line-height:1.5
+}
+.close-session-btn{
+  width:100%;padding:11px;border-radius:8px;border:1.5px solid var(--b);
+  background:var(--bs);color:var(--b);font-size:12px;font-weight:700;
+  cursor:pointer;transition:all .15s;margin-top:8px;font-family:var(--font)
+}
+.close-session-btn:hover{background:var(--bd)}
+.close-session-btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* Sect */
+.sect{
+  background:var(--s1);border:1px solid var(--b1);
+  border-radius:var(--radius);padding:13px;margin-bottom:8px
+}
+.sect h3{
+  font-size:10px;text-transform:uppercase;letter-spacing:1px;
+  color:var(--t3);font-weight:700;margin-bottom:10px
+}
+.bar-row{display:flex;align-items:center;gap:8px;padding:3px 0}
+.bar-name{font-size:11px;color:var(--t2);min-width:90px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar-wrap{flex:1;background:var(--b1);border-radius:3px;height:5px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;transition:width .5s}
+.bar-fill.g{background:var(--g)}.bar-fill.r{background:var(--r)}.bar-fill.y{background:var(--y)}.bar-fill.b{background:var(--b)}
+.bar-val{font-size:11px;color:var(--t3);min-width:36px;text-align:right}
+
+/* Analysis */
+.analyze-row{display:flex;gap:7px;margin-bottom:8px;align-items:center}
+.sel-in{
+  background:var(--s2);border:1px solid var(--b1);color:var(--t1);
+  padding:6px 9px;border-radius:6px;font-size:12px;cursor:pointer;
+  font-family:var(--font)
+}
+.analyze-btn{
+  padding:6px 12px;border-radius:6px;border:1.5px solid var(--b1);
+  background:var(--s2);color:var(--t2);font-size:12px;font-weight:600;
+  cursor:pointer;transition:all .15s;font-family:var(--font)
+}
+.analyze-btn:hover{border-color:var(--b3);color:#fff}
+.analysis-box{
+  background:var(--s1);border:1px solid var(--b1);border-radius:var(--radius);
+  padding:14px;font-size:12px;line-height:1.9;color:var(--t2);white-space:pre-wrap
+}
+
+/* ── ANALYTICS PAGE ── */
+.period-tabs{display:flex;gap:5px;margin-bottom:12px}
+.p-btn{
+  padding:5px 11px;border-radius:5px;border:1.5px solid var(--b1);
+  background:var(--s2);color:var(--t3);font-size:11px;font-weight:700;
+  cursor:pointer;transition:all .15s;text-transform:uppercase;font-family:var(--font)
+}
+.p-btn.active{background:var(--bs);border-color:var(--b);color:var(--b)}
+
+/* Edge statement */
+.edge-box{
+  background:var(--s2);border:1px solid #1e1e40;border-radius:var(--radius);
+  padding:14px 16px;margin-bottom:10px
+}
+.edge-box .edge-label{
+  font-size:10px;text-transform:uppercase;letter-spacing:1.2px;
+  color:var(--b);font-weight:700;margin-bottom:5px
+}
+.edge-box .edge-text{font-size:13px;color:var(--t1);font-weight:600;line-height:1.5}
+
+.a-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.a-card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--radius);padding:13px}
+.a-card h3{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--t3);font-weight:700;margin-bottom:8px}
+.big-r{font-size:32px;font-weight:900;line-height:1}
+.big-sub{font-size:10px;color:var(--t3);margin-top:2px}
+.chart-wrap{position:relative;height:180px;margin-top:4px}
+
+.perf-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--b1);font-size:12px}
+.perf-row:last-child{border:none}
+.perf-label{color:var(--t2)}
+.perf-val{font-weight:700}
+
+/* Seq cards */
+.seq-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px}
+.seq-card{background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:10px;text-align:center}
+.seq-num{font-size:20px;font-weight:800;margin-bottom:2px}
+.seq-lbl{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.4px}
+
+/* Session history */
+.ses-item{
+  display:flex;align-items:center;gap:10px;padding:9px 0;
+  border-bottom:1px solid var(--b1);font-size:12px
+}
+.ses-item:last-child{border:none}
+.ses-grade{
+  width:28px;height:28px;border-radius:7px;display:flex;align-items:center;
+  justify-content:center;font-size:13px;font-weight:800;flex-shrink:0
+}
+.ses-grade.A{background:var(--gd);color:var(--g)}
+.ses-grade.B{background:var(--yd);color:var(--y)}
+.ses-grade.C{background:var(--rd);color:var(--r)}
+.ses-info{flex:1}
+.ses-date{font-size:10px;color:var(--t3)}
+.ses-meta{color:var(--t2)}
+
+/* ── HISTORY PAGE ── */
+.hist-card{
+  background:var(--s1);border:1px solid var(--b1);border-radius:var(--radius);
+  padding:10px 11px;margin-bottom:5px;display:flex;gap:9px;align-items:flex-start
+}
+.hist-card img{width:78px;height:58px;object-fit:cover;border-radius:5px;flex-shrink:0;cursor:pointer;transition:transform .15s}
+.hist-card img:hover{transform:scale(1.05)}
+.no-img-ph{width:78px;height:58px;background:var(--s2);border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--b1);font-size:16px}
+.hist-info{flex:1;min-width:0}
+.hist-badges{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:3px}
+.badge{display:inline-flex;align-items:center;gap:2px;padding:2px 7px;border-radius:5px;font-size:10px;font-weight:700}
+.badge.qA{background:var(--gd);color:var(--g)}.badge.qB{background:var(--yd);color:var(--y)}.badge.qC{background:var(--rd);color:var(--r)}
+.badge.win{background:var(--gd);color:var(--g)}.badge.loss{background:var(--rd);color:var(--r)}.badge.be{background:var(--yd);color:var(--y)}
+.badge.setup{background:var(--bd);color:var(--b)}.badge.state{background:var(--s3);color:var(--t2)}
+.hist-meta{font-size:10px;color:var(--t3);margin-top:2px}
+.hist-note{font-size:11px;color:var(--t2);margin-top:2px;font-style:italic}
+.del-btn{background:none;border:none;color:var(--b1);cursor:pointer;font-size:14px;transition:color .15s;flex-shrink:0}
+.del-btn:hover{color:var(--r)}
+
+/* Modal */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:500;align-items:flex-end;justify-content:center}
+.modal-bg.show{display:flex}
+.modal{background:var(--s1);border:1px solid var(--b2);border-radius:14px 14px 0 0;padding:20px;width:100%;max-width:500px;max-height:80vh;overflow-y:auto}
+.modal h2{font-size:14px;font-weight:700;margin-bottom:14px;display:flex;justify-content:space-between}
+.modal-close{background:none;border:none;color:var(--t3);font-size:18px;cursor:pointer}
+.modal-close:hover{color:#fff}
+.acc-item{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--b1);font-size:13px}
+.acc-item:last-child{border:none}
+.m-btn{padding:6px 11px;border-radius:6px;border:1px solid var(--b2);background:var(--s2);color:var(--t2);font-size:11px;cursor:pointer;transition:all .15s;font-family:var(--font)}
+.m-btn:hover{color:#fff;border-color:var(--b3)}
+.m-btn.prim{background:var(--gd);border-color:var(--g);color:var(--g)}
+.color-in{width:32px;height:26px;border:none;border-radius:4px;cursor:pointer;background:none;padding:0}
+
+/* Image lightbox */
+#img-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.96);z-index:1000;align-items:center;justify-content:center;cursor:zoom-out}
+#img-modal.show{display:flex}
+#img-modal img{max-width:97vw;max-height:97vh;border-radius:8px;object-fit:contain}
+
+/* Toast */
+#toast{
+  position:fixed;bottom:16px;left:50%;transform:translateX(-50%) translateY(60px);
+  background:var(--g);color:#000;padding:9px 18px;border-radius:999px;
+  font-weight:700;font-size:12px;transition:transform .3s;z-index:999;
+  pointer-events:none;white-space:nowrap;font-family:var(--font)
+}
+#toast.show{transform:translateX(-50%) translateY(0)}
+
+/* AI box */
+.ai-result-box{background:var(--s2);border:1px solid #1e1e40;border-radius:8px;padding:10px 12px;margin-top:7px;display:none}
+.ai-result-box.show{display:block}
+.ai-result-box .ai-h{font-size:9px;color:var(--b);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:5px}
+.ai-r-row{display:flex;justify-content:space-between;font-size:11px;padding:2px 0;border-bottom:1px solid var(--b1)}
+.ai-r-row:last-child{border:none}
+.ai-k{color:var(--t3)}.ai-v{color:var(--b);font-weight:600}
+
+@media(max-width:480px){
+  .c4{grid-template-columns:repeat(2,1fr)}
+  .a-grid,.seq-row{grid-template-columns:1fr}
+  .mirror-grid{grid-template-columns:1fr}
+  .setup-grid{grid-template-columns:repeat(3,1fr)}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="app-name">The <span>Craftsman's</span> Mirror</div>
+  <nav>
+    <button class="active" onclick="showPage('log',this)">Log</button>
+    <button onclick="showPage('today',this)">Today</button>
+    <button onclick="showPage('analytics',this)">Mirror</button>
+    <button onclick="showPage('history',this)">Record</button>
+  </nav>
+  <div class="acc-chip" onclick="openAccModal()">
+    <div class="acc-dot" id="acc-dot"></div>
+    <span id="acc-name">—</span>
+  </div>
+</div>
+
+<!-- ═══════════════ LOG ═══════════════ -->
+<div class="page active" id="page-log">
+
+  <div class="sys-bar" id="sys-bar"></div>
+  <div id="log-banners"></div>
+
+  <!-- Session header -->
+  <div class="log-header" id="log-header" style="display:none">
+    <div class="session-info">
+      <div class="session-num" id="sess-num">1</div>
+      <div class="session-label">today</div>
+      <div class="session-r" id="sess-r"></div>
+    </div>
+    <div class="streak-chips">
+      <div class="streak-chip" id="log-streak-chip">📅 0 days</div>
+    </div>
+  </div>
+
+  <!-- State — the first thing, always -->
+  <div class="state-row" id="state-row"></div>
+
+  <!-- Screenshot -->
+  <div class="shot-zone" id="shot-zone">
+    <div class="shot-hint" id="shot-hint">📋 <span>Ctrl+V</span> to paste &nbsp;·&nbsp; or tap to upload</div>
+    <img id="preview" style="display:none"/>
+    <button class="clear-shot" id="clear-shot" onclick="clearShot(event)" style="display:none">clear</button>
+    <input type="file" id="file-in" accept="image/*" style="display:none"/>
+  </div>
+  <div class="ai-row">
+    <label class="toggle"><input type="checkbox" id="vision-toggle"/><span class="slider"></span></label>
+    <span class="ai-lbl" id="ai-lbl">AI read chart</span>
+  </div>
+  <div class="ai-result-box" id="ai-box">
+    <div class="ai-h">From the chart</div>
+    <div class="ai-r-row"><span class="ai-k">Direction</span><span class="ai-v" id="ai-dir">—</span></div>
+    <div class="ai-r-row"><span class="ai-k">Price</span><span class="ai-v" id="ai-price">—</span></div>
+    <div class="ai-r-row"><span class="ai-k">Note</span><span class="ai-v" id="ai-note">—</span></div>
+  </div>
+
+  <!-- Core flow card -->
+  <div class="flow-card">
+
+    <!-- Setup -->
+    <div class="flow-section">
+      <div class="flow-label">Setup <span class="chosen" id="cv-setup" style="color:var(--b)"></span></div>
+      <div class="setup-grid" id="setup-grid"></div>
+    </div>
+
+    <!-- Quality -->
+    <div class="flow-section">
+      <div class="flow-label">Quality</div>
+      <div class="quality-row">
+        <button class="q-btn qa" onclick="selQ('A',this)">A<div class="q-desc">Clean</div></button>
+        <button class="q-btn qb" onclick="selQ('B',this)">B<div class="q-desc">Valid</div></button>
+        <button class="q-btn qc" onclick="selQ('C',this)">C<div class="q-desc">Forced</div></button>
+      </div>
+    </div>
+
+    <!-- Entry + Management -->
+    <div class="flow-section">
+      <div class="flow-label">Entry <span class="chosen" id="cv-entry" style="color:var(--t3)"></span></div>
+      <div class="beh-grid" id="entry-grid"></div>
+    </div>
+
+    <div class="flow-section">
+      <div class="flow-label">Management <span class="chosen" id="cv-mgmt" style="color:var(--t3)"></span></div>
+      <div class="beh-grid" id="mgmt-grid"></div>
+    </div>
+
+    <!-- Result -->
+    <div class="flow-section">
+      <div class="flow-label">Result (R) <span class="chosen" id="cv-r" style="color:var(--t3)"></span></div>
+      <div class="r-grid" id="r-grid"></div>
+      <input class="r-custom" type="number" id="r-custom" placeholder="custom R" step="0.25" oninput="onRCustom()"/>
+    </div>
+
+  </div>
+
+  <!-- Optional context -->
+  <div class="opt-coll">
+    <div class="opt-coll-h" onclick="togOC(this)">
+      Context <span style="color:var(--t3);font-size:10px;font-weight:500;text-transform:none;letter-spacing:0">— optional</span>
+      <span class="arr">▼</span>
+    </div>
+    <div class="opt-coll-b">
+      <div class="opt-lbl">Direction</div>
+      <div class="small-grid">
+        <button class="s-btn" id="d-long"  onclick="selDir('long',this)">▲ Long</button>
+        <button class="s-btn" id="d-short" onclick="selDir('short',this)">▼ Short</button>
+      </div>
+
+      <div class="opt-lbl">HTF Aligned</div>
+      <div class="small-grid">
+        <button class="s-btn" id="htf-yes" onclick="selHTF('yes',this)">Yes ✓</button>
+        <button class="s-btn" id="htf-no"  onclick="selHTF('no',this)">No ✗</button>
+      </div>
+
+      <div class="opt-lbl">Session</div>
+      <div class="small-grid" id="sess-grid"></div>
+
+      <div class="opt-lbl">Execution Score (1–10)</div>
+      <div class="small-grid" id="score-grid"></div>
+
+      <div class="opt-lbl">Physical State</div>
+      <div class="small-grid" id="phys-grid"></div>
+
+      <div class="opt-lbl">Sleep</div>
+      <div class="small-grid" id="sleep-grid"></div>
+
+      <div class="opt-lbl">Position</div>
+      <div style="display:flex;gap:7px;align-items:center">
+        <input type="number" id="pos-sz" placeholder="1" min=".5" step=".5" style="width:65px;background:var(--s2);border:1.5px solid var(--b2);color:var(--t1);padding:7px 8px;border-radius:6px;font-size:13px;font-weight:700;outline:none;text-align:center"/>
+        <select id="instr" style="background:var(--s2);border:1.5px solid var(--b2);color:var(--t2);padding:7px;border-radius:6px;font-size:12px;outline:none;font-family:var(--font)"></select>
+      </div>
+
+      <div class="opt-lbl">Note</div>
+      <textarea id="note-in" rows="2" placeholder="Brief observation..." style="background:var(--s2);border:1.5px solid var(--b2);color:var(--t1);padding:8px 10px;border-radius:6px;font-size:12px;width:100%;outline:none;resize:none;font-family:var(--font);line-height:1.5"></textarea>
+    </div>
+  </div>
+
+  <button class="log-btn" id="log-btn" onclick="submitTrade()">Log Trade</button>
+  <button class="reset-btn" onclick="resetAll()">Clear</button>
+</div>
+
+<!-- ═══════════════ TODAY ═══════════════ -->
+<div class="page" id="page-today">
+  <div id="today-banners"></div>
+
+  <div class="stat-grid c4">
+    <div class="stat-card b"><div class="num" id="t-total">—</div><div class="lbl">Trades</div></div>
+    <div class="stat-card" id="t-r-card"><div class="num" id="t-r">—</div><div class="lbl">Total R</div></div>
+    <div class="stat-card g"><div class="num" id="t-wr">—</div><div class="lbl">Win %</div></div>
+    <div class="stat-card y"><div class="num" id="t-be">—</div><div class="lbl">BE</div></div>
+  </div>
+
+  <!-- Session mirror card -->
+  <div class="mirror-card" id="mirror-card">
+    <h3>Session Mirror</h3>
+    <div id="mirror-content">
+      <div style="color:var(--t3);font-size:12px;margin-bottom:10px">Log your trades. Close session when done.</div>
+      <button class="close-session-btn" id="close-btn" onclick="closeSession()">Close Session & Generate Mirror</button>
+    </div>
+  </div>
+
+  <div class="sect">
+    <h3>Quality Today</h3>
+    <div id="quality-today" style="display:flex;gap:7px"></div>
+  </div>
+
+  <div class="lbl" style="margin-bottom:6px">Pattern Analysis</div>
+  <div class="analyze-row">
+    <select class="sel-in" id="days-sel">
+      <option value="1">Today</option>
+      <option value="7" selected>7 days</option>
+      <option value="30">30 days</option>
+    </select>
+    <button class="analyze-btn" onclick="runAnalysis()">🤖 Mirror</button>
+  </div>
+  <div class="analysis-box" id="analysis-box">Your pattern analysis will appear here.</div>
+</div>
+
+<!-- ═══════════════ ANALYTICS (MIRROR) ═══════════════ -->
+<div class="page" id="page-analytics">
+  <div class="period-tabs">
+    <button class="p-btn active" onclick="loadAnalytics(7,this)">7D</button>
+    <button class="p-btn" onclick="loadAnalytics(30,this)">30D</button>
+    <button class="p-btn" onclick="loadAnalytics(90,this)">90D</button>
+    <button class="p-btn" onclick="loadAnalytics(365,this)">All</button>
+  </div>
+
+  <!-- The Edge Statement — most important thing -->
+  <div class="edge-box" id="edge-box">
+    <div class="edge-label">Your Edge</div>
+    <div class="edge-text" id="edge-text">Log more trades to define your edge.</div>
+  </div>
+
+  <div class="a-grid">
+    <div class="a-card">
+      <h3>Win Rate</h3>
+      <div class="big-r" id="a-wr">—</div>
+      <div class="big-sub" id="a-wr-sub">—</div>
+    </div>
+    <div class="a-card">
+      <h3>Total R</h3>
+      <div class="big-r" id="a-r">—</div>
+      <div class="big-sub" id="a-r-sub">avg exec score</div>
+    </div>
+  </div>
+
+  <!-- Cumulative R -->
+  <div class="sect">
+    <h3>R Curve</h3>
+    <div class="chart-wrap"><canvas id="r-chart"></canvas></div>
+  </div>
+
+  <!-- Quality A/B/C — the core behavioral mirror -->
+  <div class="sect">
+    <h3>Quality vs R — The Behavioral Mirror</h3>
+    <div id="quality-perf"></div>
+  </div>
+
+  <!-- State vs R -->
+  <div class="sect">
+    <h3>State vs R</h3>
+    <div id="state-perf"></div>
+  </div>
+
+  <!-- Behavior leaks -->
+  <div class="a-grid">
+    <div class="a-card">
+      <h3>Entry Behavior</h3>
+      <div class="perf-row"><span class="perf-label">Decisive</span><span class="perf-val" id="entry-dec">—</span></div>
+      <div class="perf-row"><span class="perf-label">Other</span><span class="perf-val" id="entry-bad">—</span></div>
+      <div style="font-size:10px;color:var(--t3);margin-top:6px" id="entry-insight"></div>
+    </div>
+    <div class="a-card">
+      <h3>Management</h3>
+      <div class="perf-row"><span class="perf-label">Followed Plan</span><span class="perf-val" id="mgmt-good">—</span></div>
+      <div class="perf-row"><span class="perf-label">Off-Plan</span><span class="perf-val" id="mgmt-bad">—</span></div>
+      <div style="font-size:10px;color:var(--t3);margin-top:6px" id="mgmt-insight"></div>
+    </div>
+  </div>
+
+  <!-- Sequence -->
+  <div class="sect">
+    <h3>Sequence — Post-Loss Behavior</h3>
+    <div class="seq-row" id="seq-grid"></div>
+  </div>
+
+  <!-- Session history -->
+  <div class="sect">
+    <h3>Session History</h3>
+    <div id="sess-history"></div>
+  </div>
+</div>
+
+<!-- ═══════════════ HISTORY ═══════════════ -->
+<div class="page" id="page-history">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <div style="font-size:13px;font-weight:700">Record</div>
+    <input type="date" class="sel-in" id="hist-date" onchange="loadHistory()"/>
+  </div>
+  <div id="hist-list"></div>
+</div>
+
+<!-- Account modal -->
+<div class="modal-bg" id="acc-modal">
+  <div class="modal">
+    <h2>Accounts <button class="modal-close" onclick="closeAccModal()">✕</button></h2>
+    <div id="acc-list-el"></div>
+    <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--b1)">
+      <div style="display:flex;gap:6px;align-items:center">
+        <input class="s-input" id="new-acc-name" placeholder="Account name" style="flex:1"/>
+        <input type="color" class="color-in" id="new-acc-color" value="#818cf8"/>
+        <button class="m-btn prim" onclick="addAccount()">Add</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="img-modal" onclick="closeModal()"><img id="modal-img"/></div>
+<div id="toast"></div>
+
+<script>
+const API = 'http://127.0.0.1:8000';
+let currentAccId = 1;
+let accounts = [];
+let tags = {};
+let rChart = null;
+const newState = () => ({
+  state:null, setup:null, quality:null, r:null,
+  entry:null, mgmt:null, exit:null,
+  dir:null, htf:null, session:null, score:null,
+  phys:null, sleep:null, file:null
+});
+let S = newState();
+
+// ── INIT ──────────────────────────────────────────────
+async function init(){
+  const [sys, tagData, accs] = await Promise.all([
+    fetch(`${API}/system`).then(r=>r.json()).catch(()=>({ollama:false})),
+    fetch(`${API}/tags`).then(r=>r.json()),
+    fetch(`${API}/accounts`).then(r=>r.json())
+  ]);
+  tags = tagData;
+  accounts = accs;
+  currentAccId = accs[0]?.id || 1;
+  renderAccChip();
+  renderSysBar(sys);
+  buildButtons();
+  loadSessionHeader();
+  loadBanners();
+  document.getElementById('hist-date').value = new Date().toISOString().split('T')[0];
+}
+
+function renderSysBar(sys){
+  const bar = document.getElementById('sys-bar');
+  if(!sys.ollama){
+    bar.innerHTML = '<span class="pill warn">Ollama not running</span>';
+    document.getElementById('ai-lbl').textContent = 'AI (Ollama offline)';
+    return;
+  }
+  let html = '';
+  if(!sys.vision) html += `<span class="pill off">${sys.vision_cmd}</span>`;
+  bar.innerHTML = html;
+  document.getElementById('ai-lbl').textContent = sys.vision ? 'AI read chart ✓' : 'AI (moondream not installed)';
+}
+
+function renderAccChip(){
+  const acc = accounts.find(a=>a.id===currentAccId) || accounts[0];
+  if(!acc) return;
+  currentAccId = acc.id;
+  document.getElementById('acc-dot').style.background = acc.color;
+  document.getElementById('acc-name').textContent = acc.name;
+}
+
+async function loadSessionHeader(){
+  try{
+    const s = await fetch(`${API}/stats/today?account_id=${currentAccId}`).then(r=>r.json());
+    const hdr = document.getElementById('log-header');
+    if(s.total > 0){
+      hdr.style.display = 'flex';
+      const numEl = document.getElementById('sess-num');
+      numEl.textContent = s.total + 1;
+      numEl.style.color = s.total >= 2 ? 'var(--r)' : s.total === 1 ? 'var(--y)' : 'var(--b)';
+      const rEl = document.getElementById('sess-r');
+      if(s.total_r !== undefined){
+        rEl.textContent = (s.total_r >= 0 ? '+' : '') + s.total_r + 'R';
+        rEl.style.color = s.total_r > 0 ? 'var(--g)' : s.total_r < 0 ? 'var(--r)' : 'var(--t3)';
+      }
+      const chip = document.getElementById('log-streak-chip');
+      chip.textContent = `📅 ${s.log_streak} day${s.log_streak !== 1 ? 's' : ''}`;
+      chip.className = `streak-chip${s.log_streak >= 3 ? ' active' : ''}`;
+    }
+  }catch(e){}
+}
+
+async function loadBanners(){
+  try{
+    const s = await fetch(`${API}/stats/today?account_id=${currentAccId}`).then(r=>r.json());
+    const r = s.rules;
+    let html = '';
+    if(r.over_3) html += `<div class="banner stop">Three trades reached. The structure holds you.</div>`;
+    else if(r.over_am) html += `<div class="banner caution">AM session complete. PM only — or walk.</div>`;
+    if(r.tilt_flag) html += `<div class="banner tilt">Tilt state logged this session. Recognize it.</div>`;
+    if(r.walk_away && !r.over_3) html += `<div class="banner signal">You're positive today. Walking away is a skill.</div>`;
+    document.getElementById('log-banners').innerHTML = html;
+  }catch(e){}
+}
+
+function buildButtons(){
+  // State
+  const sr = document.getElementById('state-row');
+  tags.state.forEach(t => {
+    const b = document.createElement('button');
+    b.className = `state-btn ${t.id}`;
+    b.innerHTML = `<div class="icon">${t.icon}</div>${t.label}`;
+    b.onclick = () => { selState(t.id, b); };
+    sr.appendChild(b);
+  });
+
+  // Setup
+  const sg = document.getElementById('setup-grid');
+  tags.setup.forEach(t => {
+    const b = document.createElement('button');
+    b.className = 'setup-btn';
+    b.innerHTML = `<div class="icon">${t.icon}</div>${t.label}`;
+    b.onclick = () => { selOpt('setup', t.id, b, sg); document.getElementById('cv-setup').textContent = t.label; };
+    sg.appendChild(b);
+  });
+
+  // Entry
+  const eg = document.getElementById('entry-grid');
+  tags.entry_behavior.forEach(t => {
+    const cls = t.good ? 'good' : 'bad';
+    const b = document.createElement('button');
+    b.className = `beh-btn ${cls}`;
+    b.textContent = t.label;
+    b.onclick = () => { selOpt('entry', t.id, b, eg); document.getElementById('cv-entry').textContent = t.label; document.getElementById('cv-entry').style.color = t.good ? 'var(--g)' : 'var(--r)'; };
+    eg.appendChild(b);
+  });
+
+  // Management
+  const mg = document.getElementById('mgmt-grid');
+  tags.mgmt_behavior.forEach(t => {
+    const cls = t.good ? 'good' : 'warn';
+    const b = document.createElement('button');
+    b.className = `beh-btn ${cls}`;
+    b.textContent = t.label;
+    b.onclick = () => { selOpt('mgmt', t.id, b, mg); document.getElementById('cv-mgmt').textContent = t.label; document.getElementById('cv-mgmt').style.color = t.good ? 'var(--g)' : 'var(--y)'; };
+    mg.appendChild(b);
+  });
+
+  // R presets
+  const rg = document.getElementById('r-grid');
+  tags.r_presets.forEach(r => {
+    const val = r === 'BE' ? 0 : parseFloat(r);
+    const cls = r === 'BE' ? 'be-btn' : val > 0 ? 'pos' : 'neg';
+    const b = document.createElement('button');
+    b.className = `r-btn ${cls}`;
+    b.textContent = r;
+    b.onclick = () => selRPreset(val, r, b);
+    rg.appendChild(b);
+  });
+
+  // Session
+  const sesG = document.getElementById('sess-grid');
+  const sesLabels = {asia:'Asia',london:'London',ny_pre:'NY Pre',ny_am:'NY AM',ny_pm:'NY PM'};
+  tags.session.forEach(t => {
+    const b = document.createElement('button');
+    b.className = 's-btn';
+    b.textContent = sesLabels[t.id] || t.id;
+    b.onclick = () => selOpt('session', t.id, b, sesG);
+    sesG.appendChild(b);
+  });
+
+  // Exec score
+  const scG = document.getElementById('score-grid');
+  for(let i=1;i<=10;i++){
+    const b = document.createElement('button');
+    b.className = 's-btn';
+    b.textContent = i;
+    b.onclick = () => { document.querySelectorAll('#score-grid .s-btn').forEach(b=>b.classList.remove('sel')); b.classList.add('sel'); S.score = i; };
+    scG.appendChild(b);
+  }
+
+  // Physical state
+  const phG = document.getElementById('phys-grid');
+  tags.physical_state.forEach(t => {
+    const b = document.createElement('button');
+    b.className = 's-btn';
+    b.textContent = t.label;
+    b.onclick = () => selOpt('phys', t.id, b, phG);
+    phG.appendChild(b);
+  });
+
+  // Sleep
+  const slG = document.getElementById('sleep-grid');
+  tags.sleep.forEach(t => {
+    const b = document.createElement('button');
+    b.className = 's-btn';
+    b.textContent = t.label;
+    b.onclick = () => selOpt('sleep', t.id, b, slG);
+    slG.appendChild(b);
+  });
+
+  // Instruments
+  const isel = document.getElementById('instr');
+  tags.instruments.forEach(i => { const o = document.createElement('option'); o.value = o.textContent = i; isel.appendChild(o); });
+}
+
+// ── SELECTION ─────────────────────────────────────────
+function selState(id, btn){
+  document.querySelectorAll('.state-btn').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+  S.state = id;
+}
+function selOpt(key, val, btn, grid){
+  grid.querySelectorAll('.setup-btn,.beh-btn,.s-btn').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+  S[key] = val;
+}
+function selQ(val, btn){
+  document.querySelectorAll('.q-btn').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+  S.quality = val;
+}
+function selRPreset(val, label, btn){
+  document.querySelectorAll('.r-btn').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+  document.getElementById('r-custom').value = '';
+  S.r = val;
+  const col = val>0?'var(--g)':val<0?'var(--r)':'var(--y)';
+  const el = document.getElementById('cv-r');
+  el.textContent = label; el.style.color = col;
+}
+function onRCustom(){
+  const v = parseFloat(document.getElementById('r-custom').value);
+  if(isNaN(v)) return;
+  document.querySelectorAll('.r-btn').forEach(b=>b.classList.remove('sel'));
+  S.r = v;
+  const col = v>0?'var(--g)':v<0?'var(--r)':'var(--y)';
+  const el = document.getElementById('cv-r');
+  el.textContent = (v>0?'+':'')+v+'R'; el.style.color = col;
+}
+function selDir(d, btn){
+  ['d-long','d-short'].forEach(id=>document.getElementById(id).classList.remove('sel'));
+  btn.classList.add('sel'); S.dir = d;
+}
+function selHTF(v, btn){
+  ['htf-yes','htf-no'].forEach(id=>document.getElementById(id).classList.remove('sel'));
+  btn.classList.add('sel'); S.htf = v;
+}
+function togOC(h){ h.classList.toggle('open'); h.nextElementSibling.classList.toggle('open'); }
+
+// ── IMAGE ─────────────────────────────────────────────
+document.addEventListener('paste', e => {
+  for(const item of (e.clipboardData?.items||[])){
+    if(item.type.startsWith('image/')){ S.file=item.getAsFile(); showPreview(S.file); break; }
+  }
+});
+const sz = document.getElementById('shot-zone');
+sz.addEventListener('click', () => document.getElementById('file-in').click());
+sz.addEventListener('dragover', e => { e.preventDefault(); sz.classList.add('drag'); });
+sz.addEventListener('dragleave', () => sz.classList.remove('drag'));
+sz.addEventListener('drop', e => { e.preventDefault(); sz.classList.remove('drag'); const f=e.dataTransfer.files[0]; if(f?.type.startsWith('image/')){ S.file=f; showPreview(f); } });
+document.getElementById('file-in').addEventListener('change', e => { const f=e.target.files[0]; if(f){ S.file=f; showPreview(f); } });
+
+function showPreview(file){
+  const r = new FileReader();
+  r.onload = e => {
+    document.getElementById('preview').src = e.target.result;
+    document.getElementById('preview').style.display = 'block';
+    document.getElementById('shot-hint').style.display = 'none';
+    document.getElementById('clear-shot').style.display = 'block';
+  };
+  r.readAsDataURL(file);
+}
+function clearShot(e){
+  e.stopPropagation();
+  S.file = null;
+  document.getElementById('preview').style.display = 'none';
+  document.getElementById('preview').src = '';
+  document.getElementById('shot-hint').style.display = 'flex';
+  document.getElementById('clear-shot').style.display = 'none';
+  document.getElementById('file-in').value = '';
+}
+
+// ── SUBMIT ────────────────────────────────────────────
+async function submitTrade(){
+  const btn = document.getElementById('log-btn');
+  btn.disabled = true; btn.textContent = 'Logging...';
+
+  const form = new FormData();
+  form.append('account_id', currentAccId);
+  if(S.state)   form.append('state', S.state);
+  if(S.setup)   form.append('setup_type', S.setup);
+  if(S.quality) form.append('quality', S.quality);
+  if(S.r !== null && S.r !== undefined) form.append('r_multiple', S.r);
+  if(S.entry)   form.append('entry_behavior', S.entry);
+  if(S.mgmt)    form.append('mgmt_behavior', S.mgmt);
+  if(S.exit)    form.append('exit_type', S.exit);
+  if(S.dir)     form.append('direction', S.dir);
+  if(S.htf)     form.append('htf_aligned', S.htf);
+  if(S.session) form.append('session', S.session);
+  if(S.score)   form.append('execution_score', S.score);
+  if(S.phys)    form.append('physical_state', S.phys);
+  if(S.sleep)   form.append('sleep_quality', S.sleep);
+  const sz = document.getElementById('pos-sz').value;
+  if(sz)        form.append('position_size', parseFloat(sz));
+  form.append('instrument', document.getElementById('instr').value || 'MNQ');
+  const nv = document.getElementById('note-in').value.trim();
+  if(nv)        form.append('notes', nv);
+  if(S.file)    form.append('image', S.file);
+  form.append('run_vision', document.getElementById('vision-toggle').checked ? 1 : 0);
+
+  try{
+    const res = await fetch(`${API}/trade`, {method:'POST', body:form});
+    const d   = await res.json();
+
+    if(d.ai_data && !d.ai_data.error && Object.keys(d.ai_data).length){
+      const ab = document.getElementById('ai-box');
+      ab.classList.add('show');
+      document.getElementById('ai-dir').textContent   = d.ai_data.direction || '—';
+      document.getElementById('ai-price').textContent = d.ai_data.price || '—';
+      document.getElementById('ai-note').textContent  = d.ai_data.notes || '—';
+    }
+
+    const rText = S.r !== null ? ` (${S.r >= 0 ? '+' : ''}${S.r}R)` : '';
+    toast(`Trade ${d.session_num} logged${rText}`);
+    resetAll();
+    loadSessionHeader();
+    loadBanners();
+  }catch(e){
+    alert('Error: is python main.py running?');
+  }
+  btn.disabled = false; btn.textContent = 'Log Trade';
+}
+
+function resetAll(){
+  S = newState();
+  document.querySelectorAll('.state-btn,.setup-btn,.q-btn,.beh-btn,.r-btn,.s-btn').forEach(b=>b.classList.remove('sel'));
+  ['d-long','d-short','htf-yes','htf-no'].forEach(id=>document.getElementById(id)?.classList.remove('sel'));
+  ['cv-setup','cv-entry','cv-mgmt','cv-r'].forEach(id=>{ const el=document.getElementById(id); if(el){el.textContent='';el.style.color='';} });
+  ['r-custom','pos-sz','note-in'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('preview').style.display='none';
+  document.getElementById('shot-hint').style.display='flex';
+  document.getElementById('clear-shot').style.display='none';
+  document.getElementById('file-in').value='';
+  document.getElementById('ai-box').classList.remove('show');
+}
+
+// ── TODAY ─────────────────────────────────────────────
+async function loadToday(){
+  const s = await fetch(`${API}/stats/today?account_id=${currentAccId}`).then(r=>r.json());
+
+  document.getElementById('t-total').textContent = s.total;
+  document.getElementById('t-wr').textContent = s.win_rate + '%';
+  document.getElementById('t-r').textContent = (s.total_r >= 0 ? '+' : '') + s.total_r + 'R';
+  const rc = document.getElementById('t-r-card');
+  rc.className = 'stat-card ' + (s.total_r > 0 ? 'g' : s.total_r < 0 ? 'r' : 'y');
+  document.getElementById('t-be').textContent = s.be;
+
+  // Banners
+  const r = s.rules;
+  let html = '';
+  if(r.over_3)    html += `<div class="banner stop">Three trades. Session complete.</div>`;
+  else if(r.over_am) html += `<div class="banner caution">AM session done.</div>`;
+  if(r.tilt_flag) html += `<div class="banner tilt">Tilt flagged this session.</div>`;
+  if(r.walk_away) html += `<div class="banner signal">Positive today. Walking is a skill.</div>`;
+  document.getElementById('today-banners').innerHTML = html;
+
+  // Quality mix
+  const q = s.quality;
+  const total = s.total;
+  document.getElementById('quality-today').innerHTML = total ? ['A','B','C'].map(grade => {
+    const cnt = q[grade] || 0;
+    const clr = grade==='A'?'var(--g)':grade==='B'?'var(--y)':'var(--r)';
+    return `<div style="flex:1;text-align:center;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:10px 4px">
+      <div style="font-size:22px;font-weight:800;color:${clr}">${cnt}</div>
+      <div style="font-size:10px;color:var(--t3)">${grade}-grade</div>
+    </div>`;
+  }).join('') : '<div style="color:var(--t3);font-size:12px">No trades yet.</div>';
+
+  // Session mirror
+  if(s.session){ renderMirror(s.session); }
+}
+
+async function closeSession(){
+  const btn = document.getElementById('close-btn');
+  if(btn){ btn.disabled=true; btn.textContent='Generating...'; }
+  try{
+    const form = new FormData();
+    form.append('account_id', currentAccId);
+    const d = await fetch(`${API}/session/close`, {method:'POST',body:form}).then(r=>r.json());
+    if(d.error){ toast(d.error,'err'); if(btn){btn.disabled=false;btn.textContent='Close Session & Generate Mirror';} return; }
+    renderMirror(d);
+    toast('Session mirror generated');
+  }catch(e){ alert('Error'); }
+  if(btn){ btn.disabled=false; }
+}
+
+function renderMirror(d){
+  const grade = d.session_grade || d.grade;
+  const gradeClass = grade === 'A' ? 'grade-a' : grade === 'B' ? 'grade-b' : 'grade-c';
+  const setupNames = {liq_sweep:'Liq. Sweep',trend_cont:'Trend Cont.',reversal:'Reversal',breakout:'Breakout',range:'Range'};
+  document.getElementById('mirror-content').innerHTML = `
+    <div style="display:flex;align-items:flex-end;gap:12px;margin-bottom:10px">
+      <div class="session-grade ${gradeClass}">${grade}</div>
+      <div>
+        <div style="font-size:12px;color:var(--t2);font-weight:600">Craftsman Score: ${d.craftsman_score || '—'}</div>
+        <div style="font-size:11px;color:var(--t3)">${d.trade_count||0} trades · ${d.total_r>=0?'+':''}${d.total_r}R · ${d.win_rate}% win</div>
+      </div>
+    </div>
+    <div class="mirror-grid">
+      <div class="mirror-item"><div class="m-lbl">Dominant State</div><div class="m-val">${d.dominant_state||'—'}</div></div>
+      <div class="mirror-item"><div class="m-lbl">Biggest Leak</div><div class="m-val" style="color:var(--r)">${d.biggest_leak||'—'}</div></div>
+      <div class="mirror-item"><div class="m-lbl">Pattern</div><div class="m-val" style="font-size:11px">${d.pattern_note||'—'}</div></div>
+      <div class="mirror-item"><div class="m-lbl">Best Setup</div><div class="m-val" style="color:var(--g)">${setupNames[d.best_setup]||d.best_setup||'—'}</div></div>
+    </div>
+    ${d.ai_mirror ? `<div class="ai-mirror">"${d.ai_mirror}"</div>` : ''}
+    ${d.one_signal ? `<div class="signal-box">→ ${d.one_signal}</div>` : ''}
+    <button class="close-session-btn" id="close-btn" onclick="closeSession()" style="margin-top:8px;background:none;border-color:var(--b2);color:var(--t3)">↺ Regenerate</button>
+  `;
+}
+
+async function runAnalysis(){
+  const days = document.getElementById('days-sel').value;
+  const box = document.getElementById('analysis-box');
+  box.textContent = 'Reading the pattern...';
+  try{
+    const d = await fetch(`${API}/analyze?account_id=${currentAccId}&days=${days}`).then(r=>r.json());
+    box.textContent = d.analysis;
+  }catch(e){ box.textContent='Ollama unavailable.'; }
+}
+
+// ── ANALYTICS ─────────────────────────────────────────
+async function loadAnalytics(days=7, btn=null){
+  if(btn){ document.querySelectorAll('.p-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }
+  const d = await fetch(`${API}/analytics?account_id=${currentAccId}&days=${days}`).then(r=>r.json());
+  if(d.empty){
+    document.getElementById('edge-text').textContent = 'Log more trades to define your edge.';
+    document.getElementById('a-wr').textContent = '—';
+    return;
+  }
+
+  // Edge statement
+  document.getElementById('edge-text').textContent = d.edge_statement || 'Building edge definition...';
+
+  // Overview
+  const wrEl = document.getElementById('a-wr');
+  wrEl.textContent = d.win_rate + '%';
+  wrEl.style.color = d.win_rate >= 50 ? 'var(--g)' : 'var(--r)';
+  document.getElementById('a-wr-sub').textContent = `${d.wins}W / ${d.losses}L of ${d.total} trades`;
+  const rEl = document.getElementById('a-r');
+  rEl.textContent = (d.total_r >= 0 ? '+' : '') + d.total_r + 'R';
+  rEl.style.color = d.total_r > 0 ? 'var(--g)' : 'var(--r)';
+
+  // R Chart
+  const labels = d.cumulative_r.map(x=>x.date.slice(5));
+  const vals   = d.cumulative_r.map(x=>x.cumulative);
+  if(rChart) rChart.destroy();
+  rChart = new Chart(document.getElementById('r-chart'),{
+    type:'line',
+    data:{labels,datasets:[{label:'R',data:vals,borderColor:'#818cf8',backgroundColor:'rgba(129,140,248,0.07)',borderWidth:2,pointRadius:3,tension:0.35,fill:true}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{
+      x:{ticks:{color:'#464658',font:{size:10}},grid:{color:'#1e1e24'}},
+      y:{ticks:{color:'#464658',font:{size:10},callback:v=>v+'R'},grid:{color:'#1e1e24'}}
+    }}
+  });
+
+  // Quality mirror
+  const qp = d.quality_performance;
+  const qColors = {A:'var(--g)',B:'var(--y)',C:'var(--r)'};
+  document.getElementById('quality-perf').innerHTML = ['A','B','C'].map(q => {
+    const p = qp[q]; if(!p||!p.total) return '';
+    const col = qColors[q];
+    return `<div class="perf-row">
+      <span class="perf-label" style="color:${col};font-weight:700">${q}-quality (${p.total}x)</span>
+      <span class="perf-val" style="color:${p.total_r>=0?'var(--g)':'var(--r)'}">${p.wr}% · ${p.total_r>=0?'+':''}${p.total_r}R</span>
+    </div>`;
+  }).join('');
+
+  // State vs R
+  const sp = d.state_performance;
+  const stateLabels = {locked_in:'🔒 Locked In',neutral:'😐 Neutral',off:'🌫️ Off',tilt:'🔥 Tilt'};
+  document.getElementById('state-perf').innerHTML = Object.entries(sp).map(([s,p]) =>
+    `<div class="perf-row">
+      <span class="perf-label">${stateLabels[s]||s}</span>
+      <span class="perf-val" style="color:${p.avg_r>=0?'var(--g)':'var(--r)'}">${p.wr}% · ${p.avg_r>=0?'+':''}${p.avg_r}R avg</span>
+    </div>`
+  ).join('');
+
+  // Entry + mgmt leaks
+  const el = d.entry_leak;
+  document.getElementById('entry-dec').textContent = el.good_avg_r!=null ? `${el.good_avg_r>=0?'+':''}${el.good_avg_r}R avg (${el.good_count}x)` : '—';
+  document.getElementById('entry-bad').textContent = el.bad_avg_r!=null ? `${el.bad_avg_r>=0?'+':''}${el.bad_avg_r}R avg (${el.bad_count}x)` : '—';
+  document.getElementById('entry-dec').style.color = el.good_avg_r>=0 ? 'var(--g)' : 'var(--r)';
+  document.getElementById('entry-bad').style.color = el.bad_avg_r!=null&&el.bad_avg_r<0 ? 'var(--r)' : 'var(--y)';
+  if(el.good_avg_r!=null&&el.bad_avg_r!=null){
+    const diff = (el.good_avg_r - el.bad_avg_r).toFixed(2);
+    document.getElementById('entry-insight').textContent = `Decisive entry outperforms by ${diff>0?'+':''}${diff}R avg.`;
+  }
+
+  const ml = d.mgmt_leak;
+  document.getElementById('mgmt-good').textContent = ml.good_avg_r!=null ? `${ml.good_avg_r>=0?'+':''}${ml.good_avg_r}R avg (${ml.good_count}x)` : '—';
+  document.getElementById('mgmt-bad').textContent  = ml.bad_avg_r!=null  ? `${ml.bad_avg_r>=0?'+':''}${ml.bad_avg_r}R avg (${ml.bad_count}x)`   : '—';
+  document.getElementById('mgmt-good').style.color = ml.good_avg_r>=0 ? 'var(--g)' : 'var(--r)';
+  document.getElementById('mgmt-bad').style.color  = ml.bad_avg_r!=null&&ml.bad_avg_r<0 ? 'var(--r)' : 'var(--y)';
+
+  // Sequence
+  const sq = d.sequence;
+  document.getElementById('seq-grid').innerHTML = [
+    {label:'Win % after loss', val:sq.win_after_loss, n:sq.wal_sample, good:true},
+    {label:'C-grade after loss', val:sq.c_rate_after_loss, n:sq.wal_sample, good:false},
+  ].map(item => {
+    const val = item.val != null ? item.val+'%' : 'N/A';
+    const clr = item.val==null?'var(--t3)':item.good?(item.val>=50?'var(--g)':'var(--r)'):(item.val>40?'var(--r)':'var(--g)');
+    return `<div class="seq-card"><div class="seq-num" style="color:${clr}">${val}</div><div class="seq-lbl">${item.label}</div>${item.n?`<div style="font-size:9px;color:var(--t3);margin-top:2px">${item.n} samples</div>`:''}</div>`;
+  }).join('');
+
+  // Session history
+  const sesEl = document.getElementById('sess-history');
+  if(d.sessions && d.sessions.length){
+    sesEl.innerHTML = d.sessions.slice(0,10).map(s => {
+      const g = s.session_grade;
+      return `<div class="ses-item">
+        <div class="ses-grade ${g}">${g}</div>
+        <div class="ses-info">
+          <div class="ses-meta">${s.total_r>=0?'+':''}${s.total_r}R · ${s.win_rate}% · ${s.trade_count}t</div>
+          <div class="ses-date">${s.date} · ${s.biggest_leak||'—'}</div>
+        </div>
+        ${s.craftsman_score!=null?`<div style="font-size:12px;color:var(--t3);font-weight:700">${s.craftsman_score}</div>`:''}
+      </div>`;
+    }).join('');
+  } else {
+    sesEl.innerHTML = '<div style="color:var(--t3);font-size:12px">No sessions closed yet.</div>';
+  }
+}
+
+// ── HISTORY ───────────────────────────────────────────
+async function loadHistory(){
+  const dt = document.getElementById('hist-date').value;
+  const d  = await fetch(`${API}/trades?account_id=${currentAccId}&date_filter=${dt}&limit=100`).then(r=>r.json());
+  const list = document.getElementById('hist-list');
+  if(!d.length){ list.innerHTML='<div style="color:var(--t3);font-size:12px;padding:14px 0">No trades on this day.</div>'; return; }
+
+  const qCls = {A:'qA',B:'qB',C:'qC'};
+  const sNames = {liq_sweep:'Liq Sweep',trend_cont:'Trend',reversal:'Reversal',breakout:'Breakout',range:'Range'};
+  const stIcons = {locked_in:'🔒',neutral:'😐',off:'🌫️',tilt:'🔥'};
+
+  list.innerHTML = d.map(t => {
+    const img = t.image_path ? `<img src="${API}/${t.image_path}" onclick="openModal('${API}/${t.image_path}')"/>` : '<div class="no-img-ph">📷</div>';
+    const time = new Date(t.timestamp).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+    const r = t.r_multiple;
+    const rBadge = r!=null ? `<span class="badge ${r>0?'win':r<0?'loss':'be'}">${r>0?'+':''}${r}R</span>` : '';
+    const qBadge = t.quality ? `<span class="badge ${qCls[t.quality]||''}">${t.quality}</span>` : '';
+    const sBadge = t.setup_type ? `<span class="badge setup">${sNames[t.setup_type]||t.setup_type}</span>` : '';
+    const stBadge = t.state ? `<span class="badge state">${stIcons[t.state]||''} ${t.state.replace('_',' ')}</span>` : '';
+    const noteLine = t.notes ? `<div class="hist-note">"${t.notes}"</div>` : '';
+    return `<div class="hist-card">${img}
+      <div class="hist-info">
+        <div class="hist-badges">${rBadge}${qBadge}${sBadge}${stBadge}</div>
+        <div class="hist-meta">${time}${t.entry_behavior?' · '+t.entry_behavior:''}${t.session?' · '+t.session:''}</div>
+        ${noteLine}
+      </div>
+      <button class="del-btn" onclick="delTrade(${t.id},this)">🗑</button>
+    </div>`;
+  }).join('');
+}
+
+async function delTrade(id, btn){ if(!confirm('Remove this trade?'))return; await fetch(`${API}/trade/${id}`,{method:'DELETE'}); btn.closest('.hist-card').remove(); }
+function openModal(src){ document.getElementById('modal-img').src=src; document.getElementById('img-modal').classList.add('show'); }
+function closeModal(){ document.getElementById('img-modal').classList.remove('show'); }
+
+// ── ACCOUNTS ──────────────────────────────────────────
+function openAccModal(){
+  document.getElementById('acc-list-el').innerHTML = accounts.map(a => `
+    <div class="acc-item">
+      <div class="acc-dot" style="background:${a.color};width:8px;height:8px;border-radius:50%"></div>
+      <span style="flex:1;cursor:pointer;${a.id===currentAccId?'font-weight:700;color:var(--g)':''}" onclick="switchAcc(${a.id})">${a.name}${a.id===currentAccId?' ✓':''}</span>
+      ${a.id>1?`<button class="m-btn" onclick="deleteAcc(${a.id})">Del</button>`:''}
+    </div>`).join('');
+  document.getElementById('acc-modal').classList.add('show');
+}
+function closeAccModal(){ document.getElementById('acc-modal').classList.remove('show'); }
+function switchAcc(id){ currentAccId=id; renderAccChip(); closeAccModal(); loadSessionHeader(); loadBanners(); }
+async function addAccount(){
+  const name=document.getElementById('new-acc-name').value.trim(); if(!name)return;
+  const color=document.getElementById('new-acc-color').value;
+  const form=new FormData(); form.append('name',name); form.append('color',color);
+  const d=await fetch(`${API}/accounts`,{method:'POST',body:form}).then(r=>r.json());
+  accounts.push(d); document.getElementById('new-acc-name').value=''; openAccModal(); toast('Account added');
+}
+async function deleteAcc(id){
+  if(!confirm('Delete account?'))return;
+  try{
+    const d=await fetch(`${API}/accounts/${id}`,{method:'DELETE'}).then(r=>r.json());
+    if(d.success){ accounts=accounts.filter(a=>a.id!==id); openAccModal(); toast('Deleted'); }
+    else toast(d.detail||'Cannot delete','err');
+  }catch(e){ toast('Error','err'); }
+}
+
+// ── NAV ───────────────────────────────────────────────
+function showPage(name, btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById(`page-${name}`).classList.add('active');
+  if(btn) btn.classList.add('active');
+  if(name==='today') loadToday();
+  if(name==='analytics') loadAnalytics(7);
+  if(name==='history') loadHistory();
+}
+
+function toast(msg, type){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.style.background=type==='err'?'var(--r)':'var(--g)';
+  t.style.color='#000';
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+init();
+</script>
+</body>
+</html>
