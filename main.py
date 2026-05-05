@@ -25,7 +25,7 @@ from psycopg2.pool import ThreadedConnectionPool
 from fastapi import FastAPI, Form, File, UploadFile, HTTPException, Request, Depends
 from fastapi.responses import FileResponse, Response, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi.staticfiles import StaticFiles
 import httpx
 import jwt as pyjwt
