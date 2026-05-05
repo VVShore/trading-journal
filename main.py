@@ -25,6 +25,7 @@ from psycopg2.pool import ThreadedConnectionPool
 from fastapi import FastAPI, Form, File, UploadFile, HTTPException, Request, Depends
 from fastapi.responses import FileResponse, Response, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.base import BaseHTTPMiddleware
 from fastapi.staticfiles import StaticFiles
 import httpx
 import jwt as pyjwt
@@ -45,9 +46,28 @@ BRIDGE_SCRIPT = Path(__file__).parent / "chart_bridge.js"
 
 # ── App ───────────────────────────────────────────────
 app = FastAPI()
+class WhopEmbedMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+
+        # Allow iframe embedding (CRITICAL)
+        response.headers["X-Frame-Options"] = "ALLOWALL"
+
+        # Allow Whop embedding specifically
+        response.headers["Content-Security-Policy"] = (
+            "frame-ancestors https://whop.com https://*.whop.com;"
+        )
+
+        return response
+
+app.add_middleware(WhopEmbedMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://whop.com",
+        "https://app.whop.com"
+    ],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -71,7 +91,14 @@ _pool: Optional[ThreadedConnectionPool] = None
 def get_pool():
     global _pool
     if _pool is None and DATABASE_URL:
-        _pool = ThreadedConnectionPool(1, 10, DATABASE_URL)
+        db_url = DATABASE_URL
+
+        # Ensure SSL for Railway/Neon
+        if "sslmode" not in db_url:
+            db_url += "?sslmode=require"
+
+        _pool = ThreadedConnectionPool(1, 10, db_url)
+
     return _pool
 
 @contextmanager
