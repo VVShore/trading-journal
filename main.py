@@ -1,5 +1,5 @@
 """
-Trading Journal — Whop Hosted (combined final)
+Trading Journal — Whop Hosted 
 
 Fixes applied vs previous versions:
   1. EmbedHeadersMiddleware is registered FIRST so it is the outermost
@@ -75,19 +75,22 @@ class EmbedHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         response = await call_next(request)
 
-        # Delete X-Frame-Options entirely.
-        # Setting it to ALLOWALL is NOT valid in modern browsers — delete it.
-        response.headers.pop("x-frame-options", None)
-        response.headers.pop("X-Frame-Options", None)
+        # MutableHeaders does not have .pop() — use del inside try/except.
+        # We must remove X-Frame-Options entirely; ALLOWALL is not valid
+        # in modern browsers and SAMEORIGIN blocks Whop's iframe.
+        for key in ("x-frame-options", "X-Frame-Options"):
+            try:
+                del response.headers[key]
+            except KeyError:
+                pass
 
         # Allow any site to embed this page in an iframe.
-        # frame-ancestors * is what makes Whop embedding work.
         response.headers["Content-Security-Policy"] = (
             "frame-ancestors *; "
             "default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob:;"
         )
 
-        # Allow localStorage and cookies to work inside cross-origin iframes.
+        # Allow localStorage to work inside cross-origin iframes.
         response.headers["Cross-Origin-Opener-Policy"]   = "unsafe-none"
         response.headers["Cross-Origin-Embedder-Policy"] = "unsafe-none"
 
@@ -188,8 +191,16 @@ def db():
     conn = None
     try:
         conn = pool.getconn()
-        # Validate the connection before use.
-        # Neon can close idle connections; if so, get a fresh one.
+
+        # Reset connection state before use.
+        # psycopg2 pool connections may be in a dirty transaction state.
+        # autocommit=True first closes any open transaction, then we
+        # switch back to manual commit mode for our work.
+        conn.autocommit = True
+        conn.autocommit = False
+
+        # Validate the connection — Neon closes idle connections after ~5 min.
+        # If the ping fails, discard and get a fresh connection.
         try:
             _cur = conn.cursor()
             _cur.execute("SELECT 1")
@@ -197,8 +208,9 @@ def db():
         except Exception:
             pool.putconn(conn, close=True)
             conn = pool.getconn()
+            conn.autocommit = True
+            conn.autocommit = False
 
-        conn.autocommit = False
         yield conn
         conn.commit()
 
